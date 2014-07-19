@@ -1,3 +1,5 @@
+#!/usr/bin/env perl
+
 use lib qw(/home/ubuntu/perl5/lib/perl5/);
 use File::Basename;
 use Proc::ParallelLoop;
