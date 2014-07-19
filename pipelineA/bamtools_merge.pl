@@ -1,4 +1,4 @@
-
+#!/usr/bin/env perl
 
 # Recommend using bamtools over samtools because the
 # @RG (read region) header is properly managed with
