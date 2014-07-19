@@ -1,22 +1,20 @@
-use lib qw(/home/ubuntu/perl5/lib/perl5/);
+#!/usr/bin/env perl
+
+# use Proc::ParallelLoop;
 use File::Basename;
-use Proc::ParallelLoop;
+use File::Path qw(make_path remove_tree);
 use Getopt::Long; 
 use Pod::Usage;
 use strict;
 
 my $man  = 0;
 my $help = 0;
-
-# These will ultimately become command line parameters.
-
-# the directory where the mate pair fastq files reside.
-my $fastq_dir = '/mnt/data/biosamples/SAMN01828242/fastq';
-my $build_dir = '/mnt/data/biosamples/SAMN01828242/build';
+my ($fastq_dir, $build_dir, $file_suffix_1, $file_suffix_2);
+my (@end1, @end2, );
 
 # the suffix on the mate pair files used to construct basename
-my $file_suffix_1 = '_1.fastq';
-my $file_suffix_2 = '_2.fastq';
+$file_suffix_1 = '_1.fastq';
+$file_suffix_2 = '_2.fastq';
 
 GetOptions(
         'h'     => \$help,
@@ -24,28 +22,45 @@ GetOptions(
 	'bd=s'  => \$build_dir,
 	'fs1=s' => \$file_suffix_1,
 	'fs2=s' => \$file_suffix_2,
+	'fq1=s'  => \@end1,
+	'fq2=s'  => \@end2,
 ) or pod2usage(0);
 
 pod2usage(-exitstatus => 0,
           -output => \*STDOUT,
           -verbose => 1,
           -noperldoc => 1,
-         ) if $help;
+         ) if $help or ( ! $build_dir )
+                    or ( (! $fastq_dir) and ( ( ! @end1 ) or ( ! @end2 ) ) ) ;
 
 
-my (@end1, @end2, );
-foreach my $fastq (`ls $fastq_dir/*.fastq`) {
-  push @end1, $fastq if $fastq =~ /$file_suffix_1/;
-  push @end2, $fastq if $fastq =~ /$file_suffix_2/;
+if( @end1 and @end2 ) {
+  @end1 = split(/,/,join(',',@end1));
+  @end2 = split(/,/,join(',',@end2));
 }
-map chomp, @end1;
-map chomp, @end2;
+elsif ($fastq_dir) {
+  foreach my $fastq (`ls $fastq_dir/*.fastq`) {
+    push @end1, $fastq if $fastq =~ /$file_suffix_1/;
+    push @end2, $fastq if $fastq =~ /$file_suffix_2/;
+  }
+  map chomp, @end1;
+  map chomp, @end2;
+}
+else {
+  die "something wrong with arguement checking logic";
+}
 
 if (@end1 != @end2) {
   die "could not find matching pe files in fastq_dir: $fastq_dir";
 }
 
+if (! -d $build_dir ) {
+  make_path($build_dir, { verbose => 1 });
+}
+
+
 print "processing files ", join ", ", @end1, @end2, "\n";
+
 
 my @cmds = ();
 for (my $i=0; $i<@end1; $i++) {
@@ -64,11 +79,14 @@ for (my $i=0; $i<@end1; $i++) {
 }
 
 
-pareach [ @cmds ], sub {
-  my $cmd = shift;
-  run_command($cmd);
-}, {"Max_Workers"=>4};
+# pareach [ @cmds ], sub {
+#   my $cmd = shift;
+#   run_command($cmd);
+# }, {"Max_Workers"=>4};
 
+foreach my $cmd (@cmds) {
+  run_command($cmd);
+}
 
 sub run_command {
   my $cmd = shift or die "no command passed to run_command";
@@ -115,6 +133,9 @@ BIOSAMPLE_ID \ fastq
 
 Basic usage documentation.
 
+
+=head2	Directory based input and output
+
 =item    -bd
 
 The directory where the Mosaik build files are written.
@@ -123,6 +144,9 @@ The directory where the Mosaik build files are written.
 
 The directory where the fastq files are. All files ending with
 suffix1 or suffix2 will be processed. Each file must have a mate.
+Each mate pari should be named the same up to the suffix.
+The output file(s) will be named with the suffix stripped off.
+Known valid suffixes are _1.fastq and _2.fastq.
 
 =item    -fs1
 
@@ -131,6 +155,18 @@ The suffix on the first file of the mate pair. The default is '_1.fastq'.
 =item    -fs2
 
 The suffix on the second file of the mate pair. The default is '_2.fastq'.
+
+
+=head2	File based input and output
+
+=item	-fq1
+
+A list of fastq files representing 1 end of a mate pair.
+
+=item	-fq2
+
+A list of fastq files representing the other end of the mate pair.
+The order of the files in -fq2 muust pair with the order in -fq1.
 
 =back
 
