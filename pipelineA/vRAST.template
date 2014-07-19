@@ -1,0 +1,323 @@
+    {
+        "info": {
+            "pipeline": "vrast_test",
+            "name": "SAMN02628523",
+            "project": "P3",
+            "user": "brettin",
+            "clientgroups":"P3"
+        }, 
+        "tasks": [
+            {
+                "cmd": {
+                    "args": "-fq1=@SRR1180184_1.fastq.gz -fq2=@SRR1180184_2.fastq.gz -bd=build 
+                    "description": "mosaik_build", 
+                    "name": "mosaik_build.pl"
+                }, 
+                "dependsOn": [], 
+                "inputs": {
+                   "SRR1180184_1.fastq.gz": {
+                        "host": "http://#shockurl",
+                        "node": "#shocknode"
+                    }
+                }, 
+                "inputs": {
+                   "SRR1180184_2.fastq.gz": {
+                        "host": "http://#shockurl",
+                        "node": "#shocknode"
+                    }
+                },
+                "outputs": {
+                    "build/SRR1180184.mkb": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "taskid": "0", 
+                "totalwork": 1
+            },
+            {
+                "cmd": {
+                    "args": "-fq1=@SRR1183085_1.fastq.gz -fq2=@SRR1183085_2.fastq.gz -bd=build
+                    "description": "mosaik_build",
+                    "name": "mosaik_build.pl"
+                },
+                "dependsOn": [],
+                "inputs": {
+                   "SRR1183085_1.fastq.gz": {
+                        "host": "http://#shockurl",
+                        "node": "#shocknode"
+                    }
+                },
+                "inputs": {
+                   "SRR1183085_2.fastq.gz": {
+                        "host": "http://#shockurl",
+                        "node": "#shocknode"
+                    }
+                },
+                "outputs": {
+                    "build/SRR1183085.mkb": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "taskid": "1",
+                "totalwork": 1
+            },
+
+
+
+
+            {
+                "cmd": {
+                    "args": "-input=@SAMN02628523.prep.fna -output=SAMN02628523.derep.fna", 
+                    "description": "dereplication", 
+                    "name": "awe_dereplicate.pl"
+                }, 
+                "dependsOn": ["0"], 
+                "inputs": {
+                   "SAMN02628523.prep.fna": {
+                        "host": "http://#shockurl",
+                        "origin": "0"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.derep.fna": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "taskid": "1", 
+                "totalwork": 1
+            },
+            {
+                "cmd": {
+                    "args": "-input=@SAMN02628523.derep.fna -output=SAMN02628523.screened.fna -index=h_sapiens_asm",
+                    "description": "bowtie screen", 
+                    "name": "awe_bowtie_screen.pl"
+                }, 
+                "dependsOn": ["1"], 
+                "inputs": {
+                   "SAMN02628523.derep.fna": {
+                        "host": "http://#shockurl",
+                        "origin": "1"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.screened.fna": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "partinfo": {
+                     "input": "SAMN02628523.derep.fna",
+                     "output": "SAMN02628523.screened.fna"
+                },
+                "taskid": "2", 
+                "totalwork": #totalwork
+            },
+            {
+                "cmd": {
+                    "args": "-input=@SAMN02628523.screened.fna -output=SAMN02628523.genecalled.faa", 
+                    "description": "gene calling", 
+                    "name": "awe_genecalling.pl"
+                }, 
+                "dependsOn": ["2"], 
+                "inputs": {
+                   "SAMN02628523.screened.fna": {
+                        "host": "http://#shockurl",
+                        "origin": "2"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.genecalled.faa": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "partinfo": {
+                     "input": "SAMN02628523.screened.fna",
+                     "output": "SAMN02628523.genecalled.faa"
+                },
+                "taskid": "3", 
+                "totalwork": #totalwork
+            },
+            {   
+                "cmd": {
+                    "args": "-input=@SAMN02628523.genecalled.faa --output=SAMN02628523.clust.faa -aa -pid=90",
+                    "description": "aa clustering",
+                    "name": "awe_cluster_parallel.pl"
+                },
+                "dependsOn": ["3"],
+                "inputs": {
+                    "SAMN02628523.genecalled.faa": {
+                        "host": "http://#shockurl",
+                        "origin": "3"
+                    }
+                },
+                "outputs": {
+                    "SAMN02628523.clust.faa": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.clust.mapping": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "partinfo": {
+                     "input": "SAMN02628523.genecalled.faa",
+                     "output": "SAMN02628523.clust.faa"
+                },
+                "taskid": "4",
+                "totalwork": 1
+            },
+            {
+                "cmd": {
+                    "name": "awe_blat.py",
+                    "args": "--input=@SAMN02628523.clust.faa --output=SAMN02628523.aa.blat", 
+                    "description": "simularity search using blat"
+                }, 
+                "dependsOn": ["4"],  
+                "inputs": {
+                    "SAMN02628523.clust.faa": {
+                        "host": "http://#shockurl",
+                        "origin": "4"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.aa.blat": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "partinfo": {
+                     "input": "SAMN02628523.clust.faa",
+                     "output": "SAMN02628523.aa.blat"
+                },
+                "taskid": "5",
+                "totalwork": #totalwork
+
+            },
+            {
+                "cmd": {
+                    "name": "awe_rna_search.pl",
+                    "args": "-input=@SAMN02628523.prep.fna -output=SAMN02628523.search.rna.fna -rna_nr=md5nr.clust", 
+                    "description": "rna detection"
+                }, 
+                "dependsOn": ["0"],  
+                "inputs": {
+                   "SAMN02628523.prep.fna": {
+                        "host": "http://#shockurl",
+                        "origin": "0"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.search.rna.fna": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "taskid": "6",
+                "totalwork": 1
+            },          
+            {
+                "cmd": {
+                    "name": "awe_cluster_parallel.pl",
+                    "args": "-input=@SAMN02628523.search.rna.fna --output=SAMN02628523.clust.rna.fna -rna -pid=97", 
+                    "description": "rna clustering"
+                }, 
+                "dependsOn": ["6"],
+                "inputs": {
+                    "SAMN02628523.search.rna.fna": {
+                        "host": "http://#shockurl",
+                        "origin": "6"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.clust.rna.fna": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.clust.rna.mapping": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "partinfo": {
+                     "input": "SAMN02628523.search.rna.fna",
+                     "output": "SAMN02628523.clust.rna.fna"
+                },
+                "taskid": "7",
+                "totalwork": 1
+            },
+            {
+                "cmd": {
+                    "name": "awe_rna_blat.sh",
+                    "args": "-i @SAMN02628523.clust.rna.fna -o SAMN02628523.rna.blat",
+                    "description": "simularity search using blat"
+                }, 
+                "dependsOn": ["7"],  
+                "inputs": {
+                    "SAMN02628523.clust.rna.fna": {
+                        "host": "http://#shockurl",
+                        "origin": "7"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.rna.blat": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "partinfo": {
+                     "input": "SAMN02628523.clust.rna.fna",
+                     "output": "SAMN02628523.rna.blat"
+                },
+                "taskid": "8",
+                "totalwork": 1
+            },
+            {
+                "cmd": {
+                    "name": "awe_annotate.pl",
+                    "args": "-raw=@#inputfile -aa_sims=@SAMN02628523.aa.blat -rna_sims=@SAMN02628523.rna.blat -clust_aa=@SAMN02628523.clust.mapping -map_rna=@SAMN02628523.clust.rna.mapping -out_prefix=SAMN02628523 -mem_host=10.0.4.172:11211", 
+                    "description": "annotation"
+                }, 
+                "dependsOn": ["4", "5", "7", "8"],  
+                "inputs": {
+                    "#inputfile": {
+                        "host": "http://#shockurl",
+                        "node": "#shocknode"
+                    },
+                    "SAMN02628523.clust.mapping": {
+                        "host": "http://#shockurl",
+                        "origin": "4"
+                    },
+                    "SAMN02628523.aa.blat": {
+                        "host": "http://#shockurl",
+                        "origin": "5"
+                    },
+                    "SAMN02628523.clust.rna.mapping": {
+                        "host": "http://#shockurl",
+                        "origin": "7"
+                    },
+                    "SAMN02628523.rna.blat": {
+                        "host": "http://#shockurl",
+                        "origin": "8"
+                    }
+                }, 
+                "outputs": {
+                    "SAMN02628523.function.summary": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.md5.summary": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.organism.summary": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.lca.summary": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.ontology.summary": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.sims.filter.seq": {
+                        "host": "http://#shockurl"
+                    },
+                    "SAMN02628523.source.stats": {
+                        "host": "http://#shockurl"
+                    }
+                },
+                "taskid": "9",
+                "totalwork": 1
+            }
+        ]
+    }
