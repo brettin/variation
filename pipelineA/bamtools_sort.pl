@@ -82,10 +82,6 @@ bamtools_sort.pl
  Either the alignment dir that contains the unsorted bam files
  or a comma separated list of bam files is required.
 
- -ad      = directory where unsorted bam files exist 
- -bam     = a comma separated list of bam files
- -t       = number of threads (default 1)
-
  Outputs are the sorted bam files named by replacing the
  .bam suffix with .sorted.bam.
 
@@ -108,15 +104,14 @@ input bam file with the suffix .bam replaced with .sorted.bam
 
 =item	-ad
 
- A directory where the unsorted bam files exist. The sorted bam files will also be written to this directory.
+ A directory where the unsorted bam files exist. The sorted bam 
+ files will also be written to this directory.
 
 =item	-bam
 
- A comma separated list of bam files with no whitespaces. The sorted bam files will be placed in the same directory as the input unsorted bam file.
-
-=item	-t
-
- Number of threads that the aligner should use.
+ A comma separated list of bam files with no whitespaces. The sorted
+ bam files will be placed in the same directory as the input unsorted
+ bam file.
 
 =back
 
