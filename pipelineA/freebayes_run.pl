@@ -82,7 +82,7 @@ freebayes_run.pl
 =head1  SYNOPSIS
 
  freebayes_run.pl -rg <fasta reference genome> -ad <dir where sorted bam files reside>   -o <output file>
- freebayes_run.pl -rg <fasta reference genome> -bam <comma separated list of bam files> -0 <output file>
+ freebayes_run.pl -rg <fasta reference genome> -bam <comma separated list of bam files> -o <output file>
 
 =head1  DESCRIPTION
 
