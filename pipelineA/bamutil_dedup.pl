@@ -1,55 +1,116 @@
 #!/usr/bin/env perl
 
-# Recommend using bamtools over samtools because the
-# @RG (read region) header is properly managed with
-# bamtool merge.
+
+use File::Basename;
+use Getopt::Long; 
+use Pod::Usage;
+use strict;
 
 
-# These will ultimately become command line parameters.
-# The directory where the bam files reside.
-# The bamtool executable.
-# The prefix used to name output, can include a path.
-my $bam_dir = '/mnt/data/biosamples/SAMN01828242/align';
-my $samtools = '/usr/local/bin/bamtool';
-my $samlibs = '/usr/local/lib';
+my ($help, $align_dir, @sorted_bams, );
+$help = 0;
+@sorted_bams = ();
 
 
-my $stdout = "$prefix.stdout";
-my $stderr = "$prefix.stderr";
-$ENV{LD_LIBRARY_PATH} = "$samlibs:$ENV{LD_LIBRARY_PATH}";
+GetOptions(
+        'h'     => \$help,
+	'ad=s'  => \$align_dir,
+	'bam=s' => \@sorted_bams,
+) or pod2usage(0);	
+pod2usage(-exitstatus => 0,
+          -output => \*STDOUT,
+          -verbose => 1,
+          -noperldoc => 1,
+) if $help  or ( ( ! $align_dir ) and ( ! @sorted_bams ) );
 
 
-foreach my $sorted_bam (`ls $bam_dir/*.sorted.bam`) {
-  push @sorted_bams, $sorted_bam;
+if ( @sorted_bams ) {
+  @sorted_bams = split( /,/, join( ',', @sorted_bams ) );
 }
-map chomp, @sorted_bams;
+elsif ( -d $align_dir ) {
+  @sorted_bams = glob "$align_dir/*.sorted.bam";
+  map chomp, @sorted_bams;
+}
+else {
+  die "Houston, we have a problem. No align_dir or list of bam files";
+}
+
+
 print "processing files ", join ", ", @sorted_bams, "\n";
+foreach ( @sorted_bams ) { die "$_ does not exist\n" unless -e $_; }
 
-
-if (! @sorted_bams) {
-  die "could not find bam files in $bam_dir";;
-}
-
-
-my $bammerge_params = "-out sorted.merged.bam ";
+my (@cmds);
 for (my $i=0; $i<@sorted_bams; $i++) {
-	$bammerge_params .= "-in $sorted_bams[$i] ";
+  my ($basename, $path, $suffix) = fileparse($sorted_bams[$i], ".bam");
+  my @params = ( "--in",
+		 $sorted_bams[$i],
+		 "--out",
+		 $path . "$basename.dedup.bam",
+		); 
+  my $cmd = "bam dedup " . join ( " ", @params );
+  push @cmds, $cmd;
 }
-my $cmd = "time bamtools merge $bammerge_params >> $stdout 2>> $stderr";
 
-my $rv = run_command($cmd);
-
+# this can be parallized
+foreach my $cmd (@cmds) {
+  run_command($cmd);
+}
 
 
 sub run_command {
   my $cmd = shift or die "no command passed to run_command";
-  my $failed_cmds = 0;
 
-  print "running $cmd\n";
+  print "running: $cmd\n";
+
   unless (!system $cmd ) {
     print "failed running $cmd\n$!";
-    $failed_cmds++
   }
-
-  return $failed_commands;
+  print "success: $cmd\n";
 }
+
+
+
+
+=pod
+
+=head1  NAME
+
+ bamutil_dedup.pl
+
+=head1  SYNOPSIS
+
+ bamutil_dedup.pl -ad <dir where sorted bam files reside>
+ bamutil_dedup.pl -bam <comma separated list of sorted bam files>
+
+=head1  DESCRIPTION
+
+ Wrapper to run the bam util tool dedup on sorted bam files.
+
+=head1  OPTIONS
+
+=over
+
+=item    -h
+
+ Basic usage documentation.
+
+=item	-ad
+
+ Alignment directory that contains the sorted bam files. The sorted
+ bam files must be named with a .sorted.bam suffix.
+
+=item	-bam
+
+ Comma separated list of sorted bam files with no whitespaces. Takes
+ precidence over -ad.
+
+=item	-o
+
+ Fullname of the output file. Same order as input files. Not used if
+ -ad option is used.
+
+=back
+
+=head1  AUTHORS
+
+=cut
