@@ -87,4 +87,11 @@ freebayes_run.pl \
 	-o /vagrant/data/biosample/SAMN02628523/align/out.vcf
 
 
+### Full Run - Minimal Command Set ###
 
+  555  # Start Pipeline Execution Test
+  556  mosaik_build.pl -fq1 /vagrant/data/biosample/SAMN02628526/SRR1180141_1.fastq.gz,/vagrant/data/biosample/SAMN02628526/SRR1183064_1.fastq.gz -fq2 /vagrant/data/biosample/SAMN02628526/SRR1180141_2.fastq.gz,/vagrant/data/biosample/SAMN02628526/SRR1183064_2.fastq.gz -bd /vagrant/data/biosample/SAMN02628526/build 
+  557  mosaik_align.pl -mkb /vagrant/data/biosample/SAMN02628526/build/SRR1180141.mkb,/vagrant/data/biosample/SAMN02628526/build/SRR1183064.mkb -ad /vagrant/data/biosample/SAMN02628526/align -rg /vagrant/data/reference/Mycobacterium_tuberculosis_H37Rv.mkb -t 4 
+  558  bamtools_sort.pl -bam /vagrant/data/biosample/SAMN02628526/align/SRR1180141.mkb.bam,/vagrant/data/biosample/SAMN02628526/align/SRR1183064.mkb.bam
+  699  bamutil_dedup.pl -bam /vagrant/data/biosample/SAMN02628526/align/SRR1180141.mkb.sorted.bam,/vagrant/data/biosample/SAMN02628526/align/SRR1183064.mkb.sorted.bam
+  559  freebayes_run.pl -bam /vagrant/data/biosample/SAMN02628526/align/SRR1180141.mkb.sorted.dedup.bam,/vagrant/data/biosample/SAMN02628526/align/SRR1183064.mkb.sorted.dedup.bam -rg /vagrant/data/reference/Mycobacterium_tuberculosis_H37Rv.fasta -o /vagrant/data/biosample/SAMN02628526/align/out.vcf
