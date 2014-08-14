@@ -177,3 +177,25 @@ my $job_id = $submission_result->{'data'}->{'id'} || die "no job_id found";
 print "result from AWE server:\n".$json->pretty->encode(
 $submission_result )."\n";
 
+=pod
+
+=head1	NAME
+
+=head1	SYNOPSIS
+
+ submit.pl -fd <fastq_dir> -su <shock_url>
+
+=head1	DESCRIPTION
+
+=head1	OPTIONS
+
+        'h'     => \$help,
+        'fd=s'  => \$fastq_dir,
+        'fs1=s' => \$file_suffix_1,
+        'fs2=s' => \$file_suffix_2,
+        'su=s'  => \$shockurl,
+        'st=s'  => \$shocktoken,
+
+=head1	AUTHORS
+
+=cut
