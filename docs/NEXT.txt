@@ -4,11 +4,40 @@
 add parallel capability in mosaik_align to proecess mkb files
 in parallel producing bam files in parallel.
 
-add script to build mosaik neural net files.
+-done add script to build mosaik neural net files.
 
 look into building a jump database from the reference genome.
 look into output from freebayes "Opened BAM reader without index file, jumping is disabled."
 
 combine mosaik_align.pl and bamtools_sort.pl into a single command. pipe
 output from mosaik align to bamtools sort if that's possible.
+
+AUG-26-2014
+
+The test data is in variation/test/SAMN
+
+Build a reference database on each of the awe clients.
+	mkdir /data/reference
+	mkdir /data/reference/mosaik
+	all_entities_Genome -f scientific_name | grep Mycobacterium
+	va-awe_mosaik_build_ref
+
+Run a test manually to show that the pipeline codes work
+
+
+THEN
+
+
+Run a test using the submit script to produce a workflow
+        source /kb/deployment/user-env.sh
+
+Validate upload to shock.
+        
+Submit the workflow manually, watching the logs
+        tail -f /data/awe/logs/client/error.log
+        tail -f /data/awe/logs/client/event.log
+
+FINALLY
+
+Evaluate design of using a tar.gz file instead of a directory.
 
