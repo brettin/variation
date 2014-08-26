@@ -197,12 +197,14 @@ test-service:
 # important to note that you must have a deploy-service target
 # even if there is no server side code to deploy.
 
-deploy: deploy-client deploy-service
+#deploy: deploy-client deploy-service
+deploy: deploy-client
 
 # deploy-all deploys client *and* server. This target is deprecated
 # and should be replaced by the deploy target.
 
-deploy-all: deploy-client deploy-service
+#deploy-all: deploy-client deploy-service
+deploy-all: deploy-client
 
 # deploy-client should deploy the client artifacts, mainly
 # the application programming interface libraries, command
@@ -285,7 +287,7 @@ deploy-upstart: deploy-service
 
 deploy-docs: build-docs
 	-mkdir -p $(TARGET)/services/$(SERVICE_DIR)/webroot/.
-	cp docs/*.html $(TARGET)/services/$(SERVICE_DIR)/webroot/.
+#	cp docs/*.html $(TARGET)/services/$(SERVICE_DIR)/webroot/.
 
 # The location of the Client.pm file depends on the --client param
 # that is provided to the compile_typespec command. The
@@ -293,7 +295,7 @@ deploy-docs: build-docs
 
 build-docs: compile-docs
 	-mkdir -p docs
-	pod2html --infile=lib/Bio/KBase/$(SERVICE_NAME)/Client.pm --outfile=docs/$(SERVICE_NAME).html
+#	pod2html --infile=lib/Bio/KBase/$(SERVICE_NAME)/Client.pm --outfile=docs/$(SERVICE_NAME).html
 
 # Use the compile-docs target if you want to unlink the generation of
 # the docs from the generation of the libs. Not recommended, but there
@@ -312,14 +314,15 @@ compile-docs: build-libs
 # target depends on the compiled libs.
 
 build-libs:
-	compile_typespec \
-		--psgi $(SERVICE_PSGI)  \
-		--impl Bio::KBase::$(SERVICE_NAME)::$(SERVICE_NAME)Impl \
-		--service Bio::KBase::$(SERVICE_NAME)::Service \
-		--client Bio::KBase::$(SERVICE_NAME)::Client \
-		--py biokbase/$(SERVICE_NAME)/Client \
-		--js javascript/$(SERVICE_NAME)/Client \
-		$(SERVICE_SPEC) lib
+#	compile_typespec \
+#		--psgi $(SERVICE_PSGI)  \
+#		--impl Bio::KBase::$(SERVICE_NAME)::$(SERVICE_NAME)Impl \
+#		--service Bio::KBase::$(SERVICE_NAME)::Service \
+#		--client Bio::KBase::$(SERVICE_NAME)::Client \
+#		--py biokbase/$(SERVICE_NAME)/Client \
+#		--js javascript/$(SERVICE_NAME)/Client \
+#		$(SERVICE_SPEC) lib
+	echo "nothing to be done for build-libs target"
 
 # the Makefile.common.rules contains a set of rules that can be used
 # in this setup. Because it is included last, it has the effect of
