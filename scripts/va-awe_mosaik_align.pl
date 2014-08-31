@@ -7,7 +7,7 @@ use Getopt::Long;
 use Pod::Usage;
 
 my $help = 0;
-my ($build_dir, @mkbs, $align_dir, $ref_genome);
+my ($build_dir, @mkbs, $align_dir, @outfiles, $ref_genome);
 
 my $annpe = "/usr/local/bin/2.1.78.pe.ann";
 my $annse = "/usr/local/bin/2.1.78.se.ann";
@@ -20,6 +20,7 @@ GetOptions(
 	'ad=s'  => \$align_dir,
 	'rg=s'  => \$ref_genome,
 	'mkb=s' => \@mkbs,
+	'o=s'   => \@outfiles,
 	'annpe=s' => \$annpe,
 	'annse=s' => \$annse,
 	't=i'     => \$threads,
@@ -29,19 +30,22 @@ pod2usage(-exitstatus => 0,
           -output => \*STDOUT,
           -verbose => 1,
           -noperldoc => 1,
-         ) if $help or (!$align_dir)
+         ) if $help or ((!$align_dir) and (!@outfiles))
 		    or (!$ref_genome)
 	            or ( (! $build_dir ) and ( ! @mkbs ) );
 
 die "ref_genome $ref_genome does not exist" unless -e $ref_genome;
 
-if ( ! -d $align_dir ) {
+if ( $align_dir and (! -d $align_dir )) {
   make_path($align_dir, { verbose => 1 });
 }
 
 
 if ( @mkbs ) {
   @mkbs = split( /,/, join( ',', @mkbs ) );
+  if ( @outfiles ) {
+    @outfiles = split( /,/, join( ',', @outfiles ) );
+  }
 }
 elsif ( -d $build_dir ) {
   foreach my $mkb ( glob( "$build_dir/*.mkb" ) ) {
@@ -63,7 +67,8 @@ for (my $i=0; $i<@mkbs; $i++) {
   my ($name, $path) = fileparse $mkbs[$i];
 
   my $cmd1 = "MosaikAligner -in $mkbs[$i] ";
-  $cmd1   .= "-out $align_dir/$name ";
+  $cmd1   .= "-out $align_dir/$name " if $align_dir;
+  $cmd1   .= "-out $outfiles[$i] " if @outfiles and ! $align_dir;
   $cmd1   .= "-ia $ref_genome -annpe $annpe -annse $annse ";
   $cmd1   .="-p $threads";
 
