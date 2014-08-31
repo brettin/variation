@@ -6,7 +6,7 @@ use File::Path qw(make_path remove_tree);
 use Getopt::Long; 
 use Pod::Usage;
 
-my ($help, $align_dir, @bams, $threads);
+my ($help, $align_dir, @bams, @outfiles, $threads);
 $threads = 1;
 $help = 0;
 
@@ -14,6 +14,7 @@ GetOptions(
         'h'       => \$help,
 	'ad=s'    => \$align_dir,
 	'bam=s'   => \@bams,
+	'o=s',    => \@outfiles,
 	't=i'     => \$threads,
 ) or pod2usage(0);
 
@@ -26,6 +27,11 @@ pod2usage(-exitstatus => 0,
 
 if ( @bams ) {
   @bams = split( /,/, join( ',', @bams ) );
+  if ( @outfiles ) {
+    @outfiles = split( /,/, join( ',', @outfiles ) );
+    die "the number of input bam files doesn't equal the number ",
+        "of output file names" unless @bams == @outfiles;
+  }
 }
 elsif ( -d $align_dir ) {
   foreach my $bam ( glob( "$align_dir/*.bam" ) ) {
@@ -50,7 +56,8 @@ for ( my $i = 0; $i < @bams; $i++ ) {
 
   my $cmd = "bamtools sort ";
   $cmd .= "-in $bams[$i] ";
-  $cmd .= " -out " . $path . "$basename.sorted.bam "; 
+  $cmd .= " -out " . $path . "$basename.sorted.bam " unless @outfiles;
+  $cmd .= " -out $outfiles[$i] " if @outfiles; 
   push @cmds, $cmd;
 }
 
@@ -112,6 +119,12 @@ input bam file with the suffix .bam replaced with .sorted.bam
  A comma separated list of bam files with no whitespaces. The sorted
  bam files will be placed in the same directory as the input unsorted
  bam file.
+
+=item	-o
+
+ A comma separated list of output file names with no whitespaces. The
+ sorted bam files are written to thse files. This is only valid with
+ the -bam option.
 
 =back
 
