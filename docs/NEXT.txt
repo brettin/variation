@@ -16,13 +16,13 @@ AUG-26-2014
 
 The test data is in variation/test/SAMN
 
-Build a reference database on each of the awe clients.
+x - Build a reference database on each of the awe clients.
 	mkdir /data/reference
 	mkdir /data/reference/mosaik
 	all_entities_Genome -f scientific_name | grep Mycobacterium
 	va-awe_mosaik_build_ref
 
-Run a test manually to show that the pipeline codes work
+x - Run a test manually to show that the pipeline codes work
 
 
 THEN
@@ -40,4 +40,6 @@ Submit the workflow manually, watching the logs
 FINALLY
 
 Evaluate design of using a tar.gz file instead of a directory.
+Evaluate use of bam index files on performance. Freebayes wants
+to use bai files, these are created with 'samtools index file.bam'.
 
