@@ -7,7 +7,7 @@ use Pod::Usage;
 use strict;
 
 
-my ($help, $align_dir, @sorted_bams, );
+my ($help, $align_dir, @sorted_bams, @outfiles, );
 $help = 0;
 @sorted_bams = ();
 
@@ -16,6 +16,7 @@ GetOptions(
         'h'     => \$help,
 	'ad=s'  => \$align_dir,
 	'bam=s' => \@sorted_bams,
+	'o=s'   => \@outfiles,
 ) or pod2usage(0);	
 pod2usage(-exitstatus => 0,
           -output => \*STDOUT,
@@ -26,6 +27,9 @@ pod2usage(-exitstatus => 0,
 
 if ( @sorted_bams ) {
   @sorted_bams = split( /,/, join( ',', @sorted_bams ) );
+  if ( @outfiles ) {
+    @outfiles = split( /,/, join( ',', @outfiles ) );
+  }
 }
 elsif ( -d $align_dir ) {
   @sorted_bams = glob "$align_dir/*.sorted.bam";
@@ -45,8 +49,11 @@ for (my $i=0; $i<@sorted_bams; $i++) {
   my @params = ( "--in",
 		 $sorted_bams[$i],
 		 "--out",
-		 $path . "$basename.dedup.bam",
-		); 
+               );
+  if    ( $align_dir ) { push @params, $path . "$basename.dedup.bam" }
+  elsif ( @outfiles )  { push @params, $outfiles[$i] }
+  else                 { push @params, $path . "$basename.dedup.bam" }
+ 
   my $cmd = "bam dedup " . join ( " ", @params );
   push @cmds, $cmd;
 }
