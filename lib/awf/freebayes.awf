@@ -1,0 +1,36 @@
+{
+    "info": {
+        "clientgroups": "kbase", 
+        "name": "FreebayesStandaloneTest", 
+        "noretry": true, 
+        "pipeline": "variation", 
+        "project": "KBase", 
+        "user": "kbasetest"
+    }, 
+    "tasks": [
+        {
+            "cmd": {
+                "args": "-rg /mnt/reference/mosaik//Mycobacterium_tuberculosis_H37Rv.fasta -bam @SRR833182.sorted.dedup.bam -o somedumbfilename", 
+                "description": "Call SNPs with freebayes", 
+                "environ": {}, 
+                "name": "va-awe_freebayes_run"
+            }, 
+            "dependsOn": [], 
+            "inputs": {
+                "SRR833182.sorted.dedup.bam": {
+                    "host": "http://10.1.16.5:7078", 
+                    "node": "c0a74218-d905-4c32-8460-eb33027a7bd5", 
+                    "origin": ""
+                }
+            }, 
+            "outputs": {
+                "somedumbfilename": {
+                    "attrfile": "", 
+                    "host": "http://10.1.16.5:7078"
+                }
+            }, 
+            "partinfo": {}, 
+            "taskid": "0"
+        }
+    ]
+}
