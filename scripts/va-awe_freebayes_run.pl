@@ -46,6 +46,9 @@ close BAMS;
 
 print "processing files: ", join(", ", @bams), " against $fasta_reference\n";
 
+foreach my $bam ( @bams ) {
+  run_command("samtools index $bam") unless -e "$bam.bai";
+}
 
 my $cmd = "freebayes -f $fasta_reference ";
 $cmd   .= "-p $ploidy ";
