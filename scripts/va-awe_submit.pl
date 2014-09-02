@@ -204,10 +204,18 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 
 print Dumper $workflow if $DEBUG;
 
+# find reference genome fasta file for freebayes
+my $ref_genome_fasta;
+my ($filename, $path, $suffix) = fileparse($ref_genome,  qr/\.[^.]*/);
+if    (-e "$path/$filename.fa")  {$ref_genome_fasta = "$path/$filename.fa"; }
+elsif (-e "$path/$filename.fasta") {$ref_genome_fasta = "$path/$filename.fasta" }
+else {die "can not find fasta reference genome for $ref_genome by ",
+	  "dropping the suffix ($suffix) and adding .fasta or .fa";}
+
 # create freebayes task
 my $newtask = $workflow->addTask(new AWE::Task());
-$newtask->command('va-awe_freebayes_run ' . ' -rg ' . $ref_genome . 
-		    '-bam @' . join(',@', @dedup_files) . ' -o ' . ' vcf.out'
+$newtask->command('va-awe_freebayes_run ' . ' -rg ' . $ref_genome_fasta . 
+		    ' -bam @' . join(',@', @dedup_files) . ' -o ' . 'out.vcf'
 		   );
 $newtask->description("Call SNPs with freebayes");
 
@@ -231,7 +239,8 @@ my $job_id = $submission_result->{'data'}->{'id'} || die "no job_id found";
 
 print $job_id, "\n";
 if (open F, ">$job_id") {
-	print F $json_workflow;
+	my $pretty_workflow = $json->pretty->encode( $workflow->getHash() );
+	print F $pretty_workflow;
 	close F;
 }
 
