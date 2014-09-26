@@ -1,7 +1,0 @@
-foreach input fastq file
-	create a task that takes as input the fastq file and produces a mkb file
-	create a task that takes as input the mkb file and produces a bam file
-	create a task that sorts the bam file
-done
-
-create a task that runs freebayes with the set of sorted bam files
