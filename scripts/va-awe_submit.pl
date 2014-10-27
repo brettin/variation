@@ -5,6 +5,7 @@ my $TEST=0;
 
 use strict;
 use File::Basename;
+use File::Spec;
 use Data::Dumper;
 use Getopt::Long;
 use Pod::Usage;
@@ -55,6 +56,9 @@ pod2usage(-exitstatus => 0,
 			( ! $ref_genome )
 		       );
 
+# any paramater validation needed
+die "fastq_dir not a directory" unless -d $fastq_dir;
+die "ref_genome does not exist" unless -e $ref_genome;
 
 foreach my $fastq ( glob "$fastq_dir/*" ) {
   push @end1, $fastq if $fastq =~ /$file_suffix_1/;
@@ -213,8 +217,10 @@ else {die "can not find fasta reference genome for $ref_genome by ",
 	  "dropping the suffix ($suffix) and adding .fasta or .fa";}
 
 # create freebayes task
+$fastq_dir =~ s/\/+$//;
+my $vcf_file =   (File::Spec->splitdir($fastq_dir))[-1] . "_" . $filename  . '.vcf';
+
 my $newtask = $workflow->addTask(new AWE::Task());
-my $vcf_file =   $fastq_dir . "_" . $ref_genome . '.vcf';;
 $newtask->command('va-awe_freebayes_run ' . ' -rg ' . $ref_genome_fasta . 
 		  ' -bam @' . join(' -bam @', @dedup_files) . ' -o ' . $vcf_file
 		   );
@@ -222,7 +228,7 @@ $newtask->description("Call SNPs with freebayes");
 
 # add input and output nodes for freebayes task
 $newtask->addInput(@freebayes_inputs);
-$newtask->addOutput(new AWE::TaskOutput("out.vcf", $shockurl));
+$newtask->addOutput(new AWE::TaskOutput("$vcf_file", $shockurl));
 
 # submit the workflow to the awe server
 my $json = JSON->new;
