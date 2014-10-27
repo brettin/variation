@@ -1,7 +1,7 @@
 #!/usr/bin/env perl -w
 
-my $DEBUG=1;
-my $TEST=1;
+my $DEBUG=0;
+my $TEST=0;
 
 use strict;
 use File::Basename;
@@ -214,8 +214,9 @@ else {die "can not find fasta reference genome for $ref_genome by ",
 
 # create freebayes task
 my $newtask = $workflow->addTask(new AWE::Task());
+my $vcf_file =   $fastq_dir . "_" . $ref_genome . '.vcf';;
 $newtask->command('va-awe_freebayes_run ' . ' -rg ' . $ref_genome_fasta . 
-		  ' -bam @' . join(' -bam @', @dedup_files) . ' -o ' . 'out.vcf'
+		  ' -bam @' . join(' -bam @', @dedup_files) . ' -o ' . $vcf_file
 		   );
 $newtask->description("Call SNPs with freebayes");
 
