@@ -1,7 +1,7 @@
 #!/usr/bin/env perl -w
 
-my $DEBUG=0;
-my $TEST=0;
+my $DEBUG = 1;
+my $TEST  = 1;
 
 use strict;
 use File::Basename;
@@ -204,6 +204,7 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 	# create input node for the last task
 	push (@dedup_files, "$name.sorted.dedup.bam");
 	push (@freebayes_inputs, new AWE::TaskInput('reference' => $dedup_output));
+
 }
 
 print Dumper $workflow if $DEBUG;
@@ -228,6 +229,19 @@ $newtask->description("Call SNPs with freebayes");
 
 # add input and output nodes for freebayes task
 $newtask->addInput(@freebayes_inputs);
+$newtask->addOutput(new AWE::TaskOutput("$vcf_file", $shockurl));
+
+# create snpeff task
+my $snpeff_vcf_file = $filename . '_snpeff.vcf';
+
+my $newtask = $workflow->addTask(new AWE::Task());
+$newtask->command('va-snpeff ' . ' -rg ' . $filename . ' -vcf @' . $vcf_file . 
+		  ' -o ' . $snpeff_vcf_file 
+                 );
+$newtask->description("Annotate variants with snpEff");
+
+# add input and output nodes for snpeff task
+$newtask->addInput('reference' => $vcf_file);
 $newtask->addOutput(new AWE::TaskOutput("$vcf_file", $shockurl));
 
 # submit the workflow to the awe server
