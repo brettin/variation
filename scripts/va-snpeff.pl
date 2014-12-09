@@ -57,6 +57,13 @@ snpeff.pl
            -rg Mycobacterium_tuberculosis_H37Rv_uid170532                    \
            -o SAMN02567719_Mycobacterium_tuberculosis_H37Rv_uid170532_snpEff.vcf
 
+
+ The reference genome that is used to align the reads to must have the same name
+ as the snpeff database reference genome.
+
+ The name of the reference genome manifests in the CHROM field of the vcf file.
+ The name of the snpeff database reference genome is found using snpEff dump command.
+
 =head1  DESCRIPTION
 
 Wrapper to execute snpEff on a vcf file against an annotated reference. The annotated
