@@ -3,9 +3,9 @@ DEPLOY_RUNTIME ?= /kb/runtime
 TARGET ?= /kb/deployment
 include $(TOP_DIR)/tools/Makefile.common
 
-SERVICE_SPEC = 
+SERVICE_SPEC = variation_service.spec
 SERVICE_NAME = Variation
-SERVICE_PORT =
+SERVICE_PORT = 9876
 SERVICE_DIR  = variation
 DIST_DIR     = $(TOP_DIR)/dist
 
@@ -57,89 +57,11 @@ SERVER_TESTS = $(wildcard server-tests/*.t)
 
 default:
 
-# Distribution Section
-#
-# This section deals with the packaging of source code into a 
-# distributable form. This is different from a deployable form
-# as our deployments tend to be kbase specific. To create a
-# distribution, we have to consider the distribution mechanisms.
-# For starters, we will consider cpan style packages for perl
-# code, we will consider egg for python, npm for javascript,
-# and it is not clear at this time what is right for java.
-#
-# In all cases, it is important not to implement into these
-# targets the actual distribution. What these targets deal
-# with is creating the distributable object (.tar.gz, .jar,
-# etc) and placing it in the top level directory of the module
-# distrubution directory.
-#
-# Use <module_name>/distribution as the top level distribution
-# directory
-dist: dist-cpan dist-egg dist-npm dist-java dist-r
-
-dist-cpan: dist-cpan-client dist-cpan-service
-
-dist-egg: dist-egg-client dist-egg-service
-
-# In this case, it is not clear what npm service would mean,
-# unless we are talking about a service backend implemented
-# in javascript, which I can imagine happing. So the target
-# is here, even though we don't have support for javascript
-# on the back end of the compiler at this time.
-dist-npm: dist-npm-client dist-npm-service
-
-dist-java: dist-java-client dist-java-service
-
-# in this case, I'm using the word client just for consistency
-# sake. What we mean by client is an R library. At this time
-# the meaning of a r-service is not understood. It can be
-# added at a later time if there is a good reason.
-dist-r: dist-r-client
-
-dist-cpan-client: deploy-client
-	tar -cvf $(TARGET).tar $(TARGET)
-	gzip $(TARGET).tar
-	mkdir -p $(DIST_DIR)
-	mv $(TARGET).tar.gz $(DIST_DIR)/
-
-dist-cpan-service:
-	echo "cpan service distribution not supported"
-
-dist-egg-client:
-	echo "egg client distribution not supported"
-
-dist-egg-service:
-	echo "egg service distribution not supported"
-
-dist-npm-client:
-	echo "npm client distribution not supported"
-
-dist-npm-service:
-	echo "npm service distribution not supported"
-
-dist-java-client:
-	echo "java client distribution not supported"
-
-dist-java-service:
-	echo "java service distribuiton not supported"
-
-dist-r-client:
-	echo "r client lib distribution not supported"
-
 # Test Section
 
 test: test-client test-scripts test-service
 	@echo "running client and script tests"
 
-# test-all is deprecated. 
-# test-all: test-client test-scripts test-service
-#
-# test-client: This is a test of a client library. If it is a
-# client-server module, then it should be run against a running
-# server. You can say that this also tests the server, and I
-# agree. You can add a test-service dependancy to the test-client
-# target if it makes sense to you. This test example assumes there is
-# already a tested running server.
 test-client:
 	# run each test
 	for t in $(CLIENT_TESTS) ; do \
@@ -151,13 +73,6 @@ test-client:
 		fi \
 	done
 
-# test-scripts: A script test should test the command line scripts. If
-# the script is a client in a client-server architecture, then there
-# should be tests against a running server. You can add a test-service
-# dependency to the test-client target. You could also add a
-# deploy-service and start-server dependancy to the test-scripts
-# target if it makes sense to you. Future versions of the makefiles
-# for services will move in this direction.
 test-scripts:
 	# run each test
 	for t in $(SCRIPT_TESTS) ; do \
@@ -169,10 +84,6 @@ test-scripts:
 		fi \
 	done
 
-# test-service: A server test should not rely on the client libraries
-# or scripts--you should not have a test-service target that depends
-# on the test-client or test-scripts targets. Otherwise, a circular
-# dependency graph could result.
 test-service:
 	# run each test
 	for t in $(SERVER_TESTS) ; do \
@@ -197,14 +108,12 @@ test-service:
 # important to note that you must have a deploy-service target
 # even if there is no server side code to deploy.
 
-#deploy: deploy-client deploy-service
-deploy: deploy-client
+deploy: deploy-client deploy-service
 
 # deploy-all deploys client *and* server. This target is deprecated
 # and should be replaced by the deploy target.
 
-#deploy-all: deploy-client deploy-service
-deploy-all: deploy-client
+deploy-all: deploy-client deploy-service
 
 # deploy-client should deploy the client artifacts, mainly
 # the application programming interface libraries, command
@@ -295,7 +204,7 @@ deploy-docs: build-docs
 
 build-docs: compile-docs
 	-mkdir -p docs
-#	pod2html --infile=lib/Bio/KBase/$(SERVICE_NAME)/Client.pm --outfile=docs/$(SERVICE_NAME).html
+	pod2html --infile=lib/Bio/KBase/$(SERVICE_NAME)/Client.pm --outfile=docs/$(SERVICE_NAME).html
 
 # Use the compile-docs target if you want to unlink the generation of
 # the docs from the generation of the libs. Not recommended, but there
@@ -314,14 +223,14 @@ compile-docs: build-libs
 # target depends on the compiled libs.
 
 build-libs:
-#	compile_typespec \
-#		--psgi $(SERVICE_PSGI)  \
-#		--impl Bio::KBase::$(SERVICE_NAME)::$(SERVICE_NAME)Impl \
-#		--service Bio::KBase::$(SERVICE_NAME)::Service \
-#		--client Bio::KBase::$(SERVICE_NAME)::Client \
-#		--py biokbase/$(SERVICE_NAME)/Client \
-#		--js javascript/$(SERVICE_NAME)/Client \
-#		$(SERVICE_SPEC) lib
+	compile_typespec \
+		--psgi $(SERVICE_PSGI)  \
+		--impl Bio::KBase::$(SERVICE_NAME)::$(SERVICE_NAME)Impl \
+		--service Bio::KBase::$(SERVICE_NAME)::Service \
+		--client Bio::KBase::$(SERVICE_NAME)::Client \
+		--py biokbase/$(SERVICE_NAME)/Client \
+		--js javascript/$(SERVICE_NAME)/Client \
+		$(SERVICE_SPEC) lib
 	echo "nothing to be done for build-libs target"
 
 # the Makefile.common.rules contains a set of rules that can be used
