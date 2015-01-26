@@ -1,7 +1,7 @@
 #!/usr/bin/env perl -w
 
-my $DEBUG = 1;
-my $TEST  = 1;
+my $DEBUG = 0;
+my $TEST  = 0;
 
 use strict;
 use File::Basename;
@@ -229,20 +229,23 @@ $newtask->description("Call SNPs with freebayes");
 
 # add input and output nodes for freebayes task
 $newtask->addInput(@freebayes_inputs);
-$newtask->addOutput(new AWE::TaskOutput("$vcf_file", $shockurl));
+my $freebayes_output = new AWE::TaskOutput("$vcf_file", $shockurl);
+$newtask->addOutput($freebayes_output);
 
-# create snpeff task
+# create snpeff task output filename
 my $snpeff_vcf_file = $filename . '_snpeff.vcf';
 
+# create snpeff task
 my $newtask = $workflow->addTask(new AWE::Task());
 $newtask->command('va-snpeff ' . ' -rg ' . $filename . ' -vcf @' . $vcf_file . 
-		  ' -o ' . $snpeff_vcf_file 
-                 );
+		  ' -o ' . $snpeff_vcf_file );
 $newtask->description("Annotate variants with snpEff");
 
 # add input and output nodes for snpeff task
-$newtask->addInput('reference' => $vcf_file);
-$newtask->addOutput(new AWE::TaskOutput("$vcf_file", $shockurl));
+my $snpeff_input = new AWE::TaskInput('reference' => $freebayes_output);
+my $snpeff_output = new AWE::TaskOutput($snpeff_vcf_file, $shockurl);
+$newtask->addInput($snpeff_input);
+$newtask->addOutput($snpeff_output);
 
 # submit the workflow to the awe server
 my $json = JSON->new;
