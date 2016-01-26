@@ -1,6 +1,6 @@
 #!/usr/bin/env perl -w
 
-my $DEBUG = 1;
+my $DEBUG = 0;
 my $TEST  = 0;
 
 use strict;
@@ -59,6 +59,7 @@ pod2usage(-exitstatus => 0,
 # any paramater validation needed
 die "fastq_dir not a directory" unless -d $fastq_dir;
 $fastq_dir =~ s/\/+$//;
+die "ref_genome does not exist" unless -e $ref_genome;
 
 foreach my $fastq ( glob "$fastq_dir/*" ) {
   push @end1, $fastq if $fastq =~ /$file_suffix_1/;
@@ -204,6 +205,7 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 	# create input node for the last task
 	push (@dedup_files, "$name.sorted.dedup.bam");
 	push (@freebayes_inputs, new AWE::TaskInput('reference' => $dedup_output));
+
 }
 
 print Dumper $workflow if $DEBUG;
@@ -228,6 +230,21 @@ $newtask->description("Call SNPs with freebayes");
 # add input and output nodes for freebayes task
 $newtask->addInput(@freebayes_inputs);
 $newtask->addOutput(new AWE::TaskOutput($vcf_file, $shockurl));
+
+# create snpeff task output filename
+my $snpeff_vcf_file = $filename . '_snpeff.vcf';
+
+# create snpeff task
+my $newtask = $workflow->addTask(new AWE::Task());
+$newtask->command('va-snpeff ' . ' -rg ' . $filename . ' -vcf @' . $vcf_file . 
+		  ' -o ' . $snpeff_vcf_file );
+$newtask->description("Annotate variants with snpEff");
+
+# add input and output nodes for snpeff task
+my $snpeff_input = new AWE::TaskInput('reference' => $freebayes_output);
+my $snpeff_output = new AWE::TaskOutput($snpeff_vcf_file, $shockurl);
+$newtask->addInput($snpeff_input);
+$newtask->addOutput($snpeff_output);
 
 # submit the workflow to the awe server
 my $json = JSON->new;
