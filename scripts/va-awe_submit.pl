@@ -1,10 +1,11 @@
 #!/usr/bin/env perl -w
 
-my $DEBUG=0;
-my $TEST=0;
+my $DEBUG = 1;
+my $TEST  = 0;
 
 use strict;
 use File::Basename;
+use File::Spec;
 use Data::Dumper;
 use Getopt::Long;
 use Pod::Usage;
@@ -17,7 +18,6 @@ use AWE::Task;
 use AWE::TaskInput;
 use AWE::TaskOutput;
 
-my $man  = 0;
 my $help = 0;
 my ($fastq_dir, $build_dir, $file_suffix_1, $file_suffix_2);
 my ($ref_genome, $aweurl, $shockurl, $shocktoken, );
@@ -28,10 +28,11 @@ $file_suffix_1 = '_1.fastq.gz';
 $file_suffix_2 = '_2.fastq.gz';
 
 # these are mosaik specific parameters
-my ($annpe, $annse, $threads, );
+my ($annpe, $annse, $threads, $ref_db, );
 $annpe         = '/kb/runtime/bin/2.1.78.pe.ann';
 $annse         = '/kb/runtime/bin/2.1.78.se.ann';
 $threads       = 6;
+$ref_db        = "/mnt/reference/mosaik";
 
 GetOptions(
         'h'     => \$help,
@@ -55,6 +56,9 @@ pod2usage(-exitstatus => 0,
 			( ! $ref_genome )
 		       );
 
+# any paramater validation needed
+die "fastq_dir not a directory" unless -d $fastq_dir;
+$fastq_dir =~ s/\/+$//;
 
 foreach my $fastq ( glob "$fastq_dir/*" ) {
   push @end1, $fastq if $fastq =~ /$file_suffix_1/;
@@ -213,15 +217,17 @@ else {die "can not find fasta reference genome for $ref_genome by ",
 	  "dropping the suffix ($suffix) and adding .fasta or .fa";}
 
 # create freebayes task
+my $vcf_file =   (File::Spec->splitdir($fastq_dir))[-1] . "_" . $filename  . '.vcf';
+
 my $newtask = $workflow->addTask(new AWE::Task());
 $newtask->command('va-awe_freebayes_run ' . ' -rg ' . $ref_genome_fasta . 
-		    ' -bam @' . join(',@', @dedup_files) . ' -o ' . 'out.vcf'
-		   );
+		  ' -bam @' . join(' -bam @', @dedup_files) . ' -o ' . $vcf_file
+		 );
 $newtask->description("Call SNPs with freebayes");
 
 # add input and output nodes for freebayes task
 $newtask->addInput(@freebayes_inputs);
-$newtask->addOutput(new AWE::TaskOutput("out.vcf", $shockurl));
+$newtask->addOutput(new AWE::TaskOutput($vcf_file, $shockurl));
 
 # submit the workflow to the awe server
 my $json = JSON->new;
