@@ -18,6 +18,8 @@ use AWE::Task;
 use AWE::TaskInput;
 use AWE::TaskOutput;
 
+use Bio::KBase::Variation::VariationConstants qw(:all);
+
 my $help = 0;
 my ($fastq_dir, $build_dir, $file_suffix_1, $file_suffix_2);
 my ($ref_genome, $aweurl, $shockurl, $shocktoken, );
@@ -29,10 +31,14 @@ $file_suffix_2 = '_2.fastq.gz';
 
 # these are mosaik specific parameters
 my ($annpe, $annse, $threads, $ref_db, );
-$annpe         = '/kb/runtime/bin/2.1.78.pe.ann';
-$annse         = '/kb/runtime/bin/2.1.78.se.ann';
-$threads       = 6;
-$ref_db        = "/mnt/reference/mosaik";
+$annpe         = annpe;
+$annse         = annse;
+$threads       = mthreads;
+$ref_db        = mref_db;
+
+# these are the default shock and awe urls
+$aweurl = aweurl;
+$shockurl = shockurl;
 
 GetOptions(
         'h'     => \$help,
@@ -59,7 +65,6 @@ pod2usage(-exitstatus => 0,
 # any paramater validation needed
 die "fastq_dir not a directory" unless -d $fastq_dir;
 $fastq_dir =~ s/\/+$//;
-die "ref_genome does not exist" unless -e $ref_genome;
 
 foreach my $fastq ( glob "$fastq_dir/*" ) {
   push @end1, $fastq if $fastq =~ /$file_suffix_1/;
@@ -213,10 +218,15 @@ print Dumper $workflow if $DEBUG;
 # find reference genome fasta file for freebayes
 my $ref_genome_fasta;
 my ($filename, $path, $suffix) = fileparse($ref_genome,  qr/\.[^.]*/);
-if    (-e "$path/$filename.fa")  {$ref_genome_fasta = "$path/$filename.fa"; }
-elsif (-e "$path/$filename.fasta") {$ref_genome_fasta = "$path/$filename.fasta" }
-else {die "can not find fasta reference genome for $ref_genome by ",
-	  "dropping the suffix ($suffix) and adding .fasta or .fa";}
+
+# this block of code doesn't work in a distributed environment
+# need to rethink the naming conventions for reference genome files
+# if    (-e "$path/$filename.fa")  {$ref_genome_fasta = "$path/$filename.fa"; }
+# elsif (-e "$path/$filename.fasta") {$ref_genome_fasta = "$path/$filename.fasta" }
+# else {die "can not find fasta reference genome for $ref_genome by ",
+# 	  "dropping the suffix ($suffix) and adding .fasta or .fa";}
+
+$ref_genome_fasta = "$path/$filename.fasta";
 
 # create freebayes task
 my $vcf_file =   (File::Spec->splitdir($fastq_dir))[-1] . "_" . $filename  . '.vcf';
@@ -229,7 +239,8 @@ $newtask->description("Call SNPs with freebayes");
 
 # add input and output nodes for freebayes task
 $newtask->addInput(@freebayes_inputs);
-$newtask->addOutput(new AWE::TaskOutput($vcf_file, $shockurl));
+my $freebayes_output = new AWE::TaskOutput($vcf_file, $shockurl);
+$newtask->addOutput($freebayes_output);
 
 # create snpeff task output filename
 my $snpeff_vcf_file = $filename . '_snpeff.vcf';
