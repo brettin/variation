@@ -1,6 +1,6 @@
 #!/usr/bin/env perl -w
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 my $TEST  = 0;
 
 use strict;
@@ -9,6 +9,7 @@ use File::Spec;
 use Data::Dumper;
 use Getopt::Long;
 use Pod::Usage;
+use MIME::Base64;
 
 use SHOCK::Client;
 use AWE::Client;
@@ -22,7 +23,7 @@ use Bio::KBase::Variation::VariationConstants qw(:all);
 
 my $help = 0;
 my ($fastq_dir, $build_dir, $file_suffix_1, $file_suffix_2);
-my ($ref_genome, $aweurl, $shockurl, $shocktoken, );
+my ($ref_db, $ref_genome, $ref_name, $aweurl, $shockurl, $shocktoken, );
 my (@end1, @end2, );
 
 # the suffix on the mate pair files used to construct basename
@@ -30,22 +31,28 @@ $file_suffix_1 = '_1.fastq.gz';
 $file_suffix_2 = '_2.fastq.gz';
 
 # these are mosaik specific parameters
-my ($annpe, $annse, $threads, $ref_db, );
+my ($annpe, $annse, $threads, );
 $annpe         = annpe;
 $annse         = annse;
 $threads       = mthreads;
-$ref_db        = mref_db;
+
+print "annpe = $annpe\n";
+print "annse = $annse\n";
+print "threads = $threads\n";
 
 # these are the default shock and awe urls
 $aweurl = aweurl;
 $shockurl = shockurl;
+
+print "aweurl = $aweurl\n";
+print "shockurl = $shockurl\n";
 
 GetOptions(
         'h'     => \$help,
         'fd=s'  => \$fastq_dir,
         'fs1=s' => \$file_suffix_1,
         'fs2=s' => \$file_suffix_2,
-	'rg=s'  => \$ref_genome,
+	'rd=s'  => \$ref_db,
 	'au=s'  => \$aweurl,
 	'su=s'  => \$shockurl,
 	'st=s'  => \$shocktoken,
@@ -59,17 +66,34 @@ pod2usage(-exitstatus => 0,
          ) if $help or (( ! $fastq_dir ) or 
 			( ! $shockurl )  or
 			( ! $aweurl )    or
-			( ! $ref_genome )
+			( ! $ref_db )
 		       );
 
 # any paramater validation needed
 die "fastq_dir not a directory" unless -d $fastq_dir;
 $fastq_dir =~ s/\/+$//;
+my($filename, $directories, $suffix) = fileparse($ref_db, qr/\.[^.]*/);
+
+
+# allow the reference genome data to stored in shock
+print "checking reference db $ref_db if is handle\n";
+if ( $suffix =~ /\.handle$/ ) {
+  $ref_db = read_handle( $ref_db );
+  $ref_name = $filename;
+  $ref_name =~ s/\.tar//;
+  print "ref_db handle: $ref_db\n" if $DEBUG;
+  print "ref_name: $ref_name\n" if $DEBUG;
+}
+else {
+  die "the reference database command line parameter doesn;t look " .
+      "like a shock handle based on the file suffix";
+} 
 
 foreach my $fastq ( glob "$fastq_dir/*" ) {
   push @end1, $fastq if $fastq =~ /$file_suffix_1/;
   push @end2, $fastq if $fastq =~ /$file_suffix_2/;
 }
+die "no file suffixes $file_suffix_1 or $file_suffix_2 found in $fastq_dir" unless @end1 > 0 or @end2 > 0;
 die "problem matching paired end files" unless @end1 == @end2;
 
 map chomp, @end1;
@@ -88,7 +112,7 @@ for ( my $i = 0; $i < @end1; $i++ ) {
 
 print Dumper \@task_files if $DEBUG;
 
-# upload files and remember the ids
+# upload fastq files and remember the ids
 # id_pair is a 2 element array containing the filename and node id
 # task_nodes is a list of id_pairs
 
@@ -127,7 +151,7 @@ print Dumper \@task_nodes if $DEBUG;
 my $workflow = new AWE::Workflow(
 	"pipeline"=> "variation",
 	"name"=> "MosaikFreebayesV1",
-	"project"=> "KBase",
+	"project"=> "PATRIC3",
 	"user"=> "kbasetest",
 	"clientgroups"=> "kbase",
 	"noretry"=> JSON::true
@@ -146,7 +170,7 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 
 	# create mosaik build task
 	my $newtask = $workflow->addTask(new AWE::Task());
-	$newtask->command('va-awe_mosaik_build ' . '-fq1 @' . $input1->[0] .
+	$newtask->command('va-mosaik_build ' . '-fq1 @' . $input1->[0] .
 			  ' -fq2 @' . $input2->[0] . ' -o ' . $name . '.mkb'
 			 );
 	$newtask->description('Create mosaik files for paired end fastq files');
@@ -170,16 +194,16 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 				)
 			);
 
-        # create mosaik align task
-        $newtask = $workflow->addTask(new AWE::Task());
-        $newtask->command('va-awe_mosaik_align -mkb @' . $name . '.mkb -o ' . 
-			  $name . ' -rg ' . $ref_genome . ' -t ' . $threads .
-			  ' -annpe ' . $annpe . ' -annse ' . $annse
-			 );
-        $newtask->description('Align reads to reference genome');
-        $newtask->environ({'REF_DB_PATH' => '/mnt/reference/mosaik'});
+  # create mosaik align task
+  $newtask = $workflow->addTask(new AWE::Task());
+  $newtask->command('va-mosaik_align -mkb @' . $name . '.mkb ' . 
+	  ' -rdh ' . encode_base64($ref_db, "") . ' -t ' . $threads .
+	  ' -annpe ' . $annpe . ' -annse ' . $annse
+  );
+  $newtask->description('Align reads to reference genome');
+  $newtask->environ({public => {'KB_AUTH_TOKEN' => $shocktoken}});
 
-        # add input and output nodes for mosaik align task
+  # add input and output nodes for mosaik align task
 	my $align_input = new AWE::TaskInput('reference' => $build_output);
 	my $align_output = new AWE::TaskOutput("$name.bam", $shockurl);
 	$newtask->addInput($align_input);
@@ -187,7 +211,7 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 
 	# create bamtools sort task
 	$newtask = $workflow->addTask(new AWE::Task());
-	$newtask->command('va-awe_bamtools_sort ' . ' -bam @' . $name . '.bam');
+	$newtask->command('va-bamtools_sort ' . ' -bam @' . $name . '.bam');
 	$newtask->description('Sort bam file');
 
 	# add input and output nodes for bamtools sort task
@@ -198,7 +222,7 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 
 	# create bamutil dedup tmask
 	$newtask = $workflow->addTask(new AWE::Task());
-	$newtask->command('va-awe_bamutil_dedup ' . ' -bam @' . $name . '.sorted.bam');
+	$newtask->command('va-bamutil_dedup ' . ' -bam @' . $name . '.sorted.bam');
 	$newtask->description('Mark duplicates in bam file');
 
 	# add input and output nodes for bamutil dedup task
@@ -215,24 +239,13 @@ for (my $i = 0 ; $i < @task_nodes ; ++$i) {
 
 print Dumper $workflow if $DEBUG;
 
-# find reference genome fasta file for freebayes
-my $ref_genome_fasta;
-my ($filename, $path, $suffix) = fileparse($ref_genome,  qr/\.[^.]*/);
-
-# this block of code doesn't work in a distributed environment
-# need to rethink the naming conventions for reference genome files
-# if    (-e "$path/$filename.fa")  {$ref_genome_fasta = "$path/$filename.fa"; }
-# elsif (-e "$path/$filename.fasta") {$ref_genome_fasta = "$path/$filename.fasta" }
-# else {die "can not find fasta reference genome for $ref_genome by ",
-# 	  "dropping the suffix ($suffix) and adding .fasta or .fa";}
-
-$ref_genome_fasta = "$path/$filename.fasta";
 
 # create freebayes task
-my $vcf_file =   (File::Spec->splitdir($fastq_dir))[-1] . "_" . $filename  . '.vcf';
+my $vcf_file =   (File::Spec->splitdir($fastq_dir))[-1] . "_" . $ref_name  . '.vcf';
 
 my $newtask = $workflow->addTask(new AWE::Task());
-$newtask->command('va-awe_freebayes_run ' . ' -rg ' . $ref_genome_fasta . 
+$newtask->environ({public => {'KB_AUTH_TOKEN' => $shocktoken}});
+$newtask->command('va-freebayes_run ' . ' -rdh ' . encode_base64($ref_db, "") . 
 		  ' -bam @' . join(' -bam @', @dedup_files) . ' -o ' . $vcf_file
 		 );
 $newtask->description("Call SNPs with freebayes");
@@ -243,11 +256,12 @@ my $freebayes_output = new AWE::TaskOutput($vcf_file, $shockurl);
 $newtask->addOutput($freebayes_output);
 
 # create snpeff task output filename
-my $snpeff_vcf_file = $filename . '_snpeff.vcf';
+my $snpeff_vcf_file = $ref_name . '_snpeff.vcf';
 
 # create snpeff task
 my $newtask = $workflow->addTask(new AWE::Task());
-$newtask->command('va-snpeff ' . ' -rg ' . $filename . ' -vcf @' . $vcf_file . 
+$newtask->environ({public => {'KB_AUTH_TOKEN' => $shocktoken}});
+$newtask->command('va-snpeff ' . ' -rdh ' . encode_base64($ref_db, "") . ' -vcf @' . $vcf_file . 
 		  ' -o ' . $snpeff_vcf_file );
 $newtask->description("Annotate variants with snpEff");
 
@@ -280,6 +294,32 @@ if (open F, ">$job_id") {
 
 print "result from AWE server:\n".$json->pretty->encode($submission_result )."\n" if $DEBUG;
 
+
+
+
+
+sub read_handle {
+  my ($perl_scalar, $json_string, $json_obj);
+
+  open F, "<$_[0]" or die "can not read file $_[0]";
+  while(<F>) {
+    chomp;
+    $json_string .= $_;
+  }
+  close F;
+  
+  # complaign if it look like base64
+  warn "look like base 64" if $json_string =~ /^[A-Za-z0-9+\/\n]+$/;
+  
+  # need a better way to validate the json_text
+  print "json_string: ", $json_string, "\n" if $DEBUG;
+  $json_obj = JSON->new->allow_nonref;
+  $perl_scalar = $json_obj->decode( $json_string ) or die "cannot decode json_text: $json_string";
+
+  return $json_string;
+}
+
+
 =pod
 
 =head1	NAME
@@ -296,13 +336,66 @@ print "result from AWE server:\n".$json->pretty->encode($submission_result )."\n
 =head1	OPTIONS
 
         'h'     => \$help,	Prints a help message.
-	'rg=s'  => \$ref_genome,	The reference genome to align to.
+        'rd=s'  => \$ref_db,	The reference database described below.
         'fd=s'  => \$fastq_dir,	The directory where the fastq files are.
         'fs1=s' => \$file_suffix_1,	The suffix on the first of the fastq pair.
         'fs2=s' => \$file_suffix_2,	The suffix on the second of the fastq pair.
         'su=s'  => \$shockurl,	The url of the shock server including proto.
-	'au=s'  => \$aweurl,	The url of the awe server including protocol.
+        'au=s'  => \$aweurl,	The url of the awe server including protocol.
         'st=s'  => \$shocktoken,	Your shock token.
+
+==head1 NOTES
+
+ design notes
+
+ The reference database is going to be referenced as a file
+ or a directory. The file will contain a shock handle. The
+ directory will contain the necessary reference db files.
+
+ The shock handle will resolve to a tarball that when untarred,
+ will contail all necessary reference files for the pipeline.
+ This includes a fasta file, fai file, and snpeff db.
+
+ The reference genome command line option is expected to be a
+ handle that has been base64 encoded. 
+
+ The handle resolves to a tarball that has been stored in shock.
+
+ The reference database is represented as a directory in the
+ filesystem that is created when the tarball is unpacked.
+
+ The directory name of the reference database is expected to be used
+ also in the naming of the files under that directory.
+
+ Here is an example for Bacteroides_fragilis_NCTC_9343_uid57639
+
+=item tarball stored in shock
+
+ Bacteroides_fragilis_NCTC_9343_uid57639.tar
+
+=item unpacked tarball in filesystem
+
+ Bacteroides_fragilis_NCTC_9343_uid57639/
+ Bacteroides_fragilis_NCTC_9343_uid57639/Bacteroides_fragilis_NCTC_9343_uid57639.mkb
+ Bacteroides_fragilis_NCTC_9343_uid57639/Bacteroides_fragilis_NCTC_9343_uid57639.fna
+ Bacteroides_fragilis_NCTC_9343_uid57639/Bacteroides_fragilis_NCTC_9343_uid57639/
+ Bacteroides_fragilis_NCTC_9343_uid57639/Bacteroides_fragilis_NCTC_9343_uid57639/snpEffectPredictor.bin
+ Bacteroides_fragilis_NCTC_9343_uid57639/Bacteroides_fragilis_NCTC_9343_uid57639.fna.fai
+
+  start here
+
+ only this script will have access to the handle file.
+ this script will have to read the handle file into
+ a jason string.
+
+ each task that requires a reference database will need
+ to download the tarball and unpack it. the downloading
+ and unpacking will have to take place in the task script.
+
+ the task script therefore needs to accept the handle
+ json string or a directory path as a command line option.
+
+
 
 =head1	AUTHORS
 
