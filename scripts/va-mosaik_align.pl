@@ -7,9 +7,10 @@ use JSON;
 use strict;
 use Getopt::Long; 
 use Pod::Usage;
+use Bio::KBase::Handle qw(decode_handle);
 
 my $help = 0;
-my ($build_dir, @mkbs, $align_dir, @outfiles, $ref_db);
+my ($build_dir, @mkbs, $align_dir, $ref_db);
 
 my $annpe = "/usr/local/bin/2.1.78.pe.ann";
 my $annse = "/usr/local/bin/2.1.78.se.ann";
@@ -36,7 +37,7 @@ pod2usage(-exitstatus => 0,
 @mkbs = split( /,/, join( ',', @mkbs ) );
 
 # decode the reference db handle
-my $json_handle = decode_base64($ref_db);
+my $json_handle = decode_handle($ref_db);
 my $perl_handle = decode_json($json_handle);
 my $tarball = $perl_handle->{file_name};
 my $ref_db_dir = $1 if $tarball =~ /(\S+)\.tar/;
