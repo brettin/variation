@@ -3,6 +3,7 @@
 use File::Basename;
 use Getopt::Long; 
 use Pod::Usage;
+use JSON;
 use Bio::KBase::Handle qw(decode_handle);
 
 use strict;
@@ -25,7 +26,7 @@ pod2usage(-exitstatus => 0,
          ) if $help or ( ! $ref_db ) or ( ! $vcf_file ) ;
 
 # decode the reference db handle
-my $json_handle = decod_handle($ref_db);
+my $json_handle = decode_handle($ref_db);
 my $perl_handle = decode_json($json_handle);
 my $tarball = $perl_handle->{file_name};
 my $ref_db_dir = $1 if $tarball =~ /(\S+)\.tar/;
@@ -40,12 +41,12 @@ close H;
   or die "failed to execute kbhs-download", $?;
 !system("tar", "-xvf", $perl_handle->{file_name})
   or die "can not untar $perl_handle->{file_name}", $?;
-my $ref_genome = "$ref_db_dir/$ref_db";
+my $ref_genome = "$ref_db_dir";
 -e $ref_genome && -d $ref_genome
   or die "could not find snpeff reference genome named $ref_genome";
 print "snpeff_ref_genome: $ref_genome\n";
 
-my $cmd = "snpEff.sh eff -v -lof $ref_db $vcf_file > $output_file";
+my $cmd = "snpEff.sh eff -v -lof $ref_genome $vcf_file > $output_file";
 print "COMMAND $cmd\n";
 
 run_command($cmd);
