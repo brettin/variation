@@ -3,15 +3,17 @@
 use File::Basename;
 use Getopt::Long; 
 use Pod::Usage;
+use Bio::KBase::Handle qw(decode_handle);
+
 use strict;
 
-my ($help, $snpeff_reference, $vcf_file, $output_file, );
+my ($help, $ref_db, $vcf_file, $output_file, );
 $help   = 0;
 
 GetOptions(
   'h'     => \$help,
 	'vcf=s' => \$vcf_file,
-	'rg=s'  => \$snpeff_reference,
+	'rdh=s'  => \$ref_db,
 	'o=s'   => \$output_file,
 	
 ) or pod2usage(0);
@@ -20,12 +22,30 @@ pod2usage(-exitstatus => 0,
           -output => \*STDOUT,
           -verbose => 1,
           -noperldoc => 1,
-         ) if $help or ( ! $snpeff_reference ) or ( ! $vcf_file ) ;
+         ) if $help or ( ! $ref_db ) or ( ! $vcf_file ) ;
 
-die "can not find reference genome" unless -e $snpeff_reference;
-print "using reference genome $snpeff_reference";
+# decode the reference db handle
+my $json_handle = decod_handle($ref_db);
+my $perl_handle = decode_json($json_handle);
+my $tarball = $perl_handle->{file_name};
+my $ref_db_dir = $1 if $tarball =~ /(\S+)\.tar/;
+die "could not parse ref_db_dir from $tarball" unless $ref_db_dir;
 
-my $cmd = "snpEff.sh eff -v -lof $snpeff_reference $vcf_file > $output_file";
+# fetch the reference db tarball from shock
+open  H, ">$tarball.handle" or die "can not write handle to disk";
+print H $json_handle;
+close H;
+
+!system("kbhs-download", "-handle", "$tarball.handle", "-o", "$perl_handle->{file_name}")
+  or die "failed to execute kbhs-download", $?;
+!system("tar", "-xvf", $perl_handle->{file_name})
+  or die "can not untar $perl_handle->{file_name}", $?;
+my $ref_genome = "$ref_db_dir/$ref_db";
+-e $ref_genome && -d $ref_genome
+  or die "could not find snpeff reference genome named $ref_genome";
+print "snpeff_ref_genome: $ref_genome\n";
+
+my $cmd = "snpEff.sh eff -v -lof $ref_db $vcf_file > $output_file";
 print "COMMAND $cmd\n";
 
 run_command($cmd);
