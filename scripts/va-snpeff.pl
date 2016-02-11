@@ -9,8 +9,8 @@ my ($help, $snpeff_reference, $vcf_file, $output_file, );
 $help   = 0;
 
 GetOptions(
-        'h'     => \$help,
-	'vcf=s'   => \$vcf_file,
+  'h'     => \$help,
+	'vcf=s' => \$vcf_file,
 	'rg=s'  => \$snpeff_reference,
 	'o=s'   => \$output_file,
 	
@@ -22,18 +22,17 @@ pod2usage(-exitstatus => 0,
           -noperldoc => 1,
          ) if $help or ( ! $snpeff_reference ) or ( ! $vcf_file ) ;
 
+die "can not find reference genome" unless -e $snpeff_reference;
+print "using reference genome $snpeff_reference";
 
 my $cmd = "snpEff.sh eff -v -lof $snpeff_reference $vcf_file > $output_file";
 print "COMMAND $cmd\n";
-
 
 run_command($cmd);
 
 sub run_command {
   my $cmd = shift or die "no command passed to run_command";
-
   print "running command: $cmd\n";
-
   unless (!system $cmd ) {
     print "failed running $cmd\n$!";
   }
