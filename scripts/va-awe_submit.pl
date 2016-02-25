@@ -20,6 +20,7 @@ use AWE::TaskInput;
 use AWE::TaskOutput;
 
 use Bio::KBase::Variation::VariationConstants qw(:all);
+use Bio::KBase::AuthToken;
 
 my $help = 0;
 my ($fastq_dir, $build_dir, $file_suffix_1, $file_suffix_2);
@@ -74,6 +75,8 @@ die "fastq_dir not a directory" unless -d $fastq_dir;
 $fastq_dir =~ s/\/+$//;
 my($filename, $directories, $suffix) = fileparse($ref_db, qr/\.[^.]*/);
 
+# if a auth token isn't passed in, try to get one
+$shocktoken = Bio::KBase::AuthToken->new()->{token} unless $shocktoken;
 
 # allow the reference genome data to stored in shock
 print "checking reference db $ref_db if is handle\n";

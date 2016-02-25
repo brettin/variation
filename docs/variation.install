@@ -1,0 +1,31 @@
+To install the variation:
+
+1. The va-awe_submit.pl scripts needs to be placed in the
+runtime/bin.
+
+2. The awe client app-dir needs to contain
+        mosaik
+        samtools
+        bamtools
+        bamutils
+        freebayes
+        snpeff
+
+
+3. Handle.pm and the handle service CLI needs to be deployed where
+the va-mosaik_align, va-freebayes and va-snpeff scripts are
+deployed.
+
+4. AWE.pm and SHOCK::Client.pm need to be deployed where
+va-awe_submit.pl is deployed. These come as part of the variation
+libraries
+
+5. The variation client libraries need to be deployed where the
+va-awe_submit.pl is deployed. Because it depends on deployed client
+libs that come in the variation module, the deployment target is
+KB_DEPLOYMENT and not KB_RUNTIME.
+
+SO, the strategy is two part.
+1. deploy variation on redwood for the va-awe_submit script
+2. build the runtime tools on the awe clients and deploy the
+variation and handle service on the awe clients.
