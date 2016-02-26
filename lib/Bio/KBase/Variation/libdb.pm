@@ -1,8 +1,11 @@
+package Bio::KBase::Variation::libdb;
+
 use IPC::Run qw(run timeout);
 use JSON;
 use Template;
-
+use File::Basename;
 use Exporter qw(import);
+
 our @EXPORT = qw(variation_build_db);
 our @EXPORT_OK = qw( 
   snpeff_write_config
@@ -37,7 +40,9 @@ our $data_url = "https://www.patricbrc.org/api";
 # snpeff variables
 # our $snpeff_config = "/tmp/snpEff/snpEff.config";
 # our $ver = 'p3.' . $gid;
-our $snpeff_config_tt = '/home/ubuntu/tom/dev_container/modules/variation/scripts/snpEff.config.tt';
+# our $snpeff_config_tt = '/home/ubuntu/tom/dev_container/modules/variation/scripts/snpEff.config.tt';
+my ($name,$path,$suffix) = fileparse( $INC{"Bio/KBase/Variation/libdb.pm"} );
+our $snpeff_config_tt =  $path . "/snpEff.config.tt";;
 
 
 sub variation_build_db {
