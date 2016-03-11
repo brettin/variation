@@ -8,13 +8,13 @@ use Bio::KBase::Handle qw(decode_handle);
 
 use strict;
 
-my ($help, $ref_db, $vcf_file, $output_file, );
+my ($help, $ref_db_h, $vcf_file, $output_file, );
 $help   = 0;
 
 GetOptions(
   'h'     => \$help,
 	'vcf=s' => \$vcf_file,
-	'rdh=s'  => \$ref_db,
+	'rdh=s'  => \$ref_db_h,
 	'o=s'   => \$output_file,
 	
 ) or pod2usage(0);
@@ -23,10 +23,10 @@ pod2usage(-exitstatus => 0,
           -output => \*STDOUT,
           -verbose => 1,
           -noperldoc => 1,
-         ) if $help or ( ! $ref_db ) or ( ! $vcf_file ) ;
+         ) if $help or ( ! $ref_db_h ) or ( ! $vcf_file ) ;
 
 # decode the reference db handle
-my $json_handle = decode_handle($ref_db);
+my $json_handle = decode_handle($ref_db_h);
 my $perl_handle = decode_json($json_handle);
 my $tarball = $perl_handle->{file_name};
 my $ref_db_dir = $1 if $tarball =~ /(\S+)\.tar/;
@@ -46,7 +46,7 @@ my $ref_genome = "$ref_db_dir";
   or die "could not find snpeff reference genome named $ref_genome";
 print "snpeff_ref_genome: $ref_genome\n";
 
-my $cmd = "snpEff.sh eff -v -lof $ref_genome $vcf_file > $output_file";
+my $cmd = "snpEff.sh eff -v -lof -c $ref_genome/snpEff.config $ref_genome $vcf_file > $output_file";
 print "COMMAND $cmd\n";
 
 run_command($cmd);
