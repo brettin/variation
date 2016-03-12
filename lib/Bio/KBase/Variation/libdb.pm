@@ -37,17 +37,19 @@ our $samtools_exe = "$ENV{KB_RUNTIME}/samtools/bin/samtools";
 
 my ($name,$path,$suffix) = fileparse( $INC{"Bio/KBase/Variation/libdb.pm"} );
 our $snpeff_config_tt =  $path . "snpEff.config.tt";;
+
 our $dbpath = "/tmp/reference";
 our $dbpath = tempdir( "snpeff-XXXXXX", DIR => "/tmp");
 
 print "using $data_url as the data url\n";
 print "using $dbpath as the refdb base dir\n";
 print "using $snpeff_config_tt as the snpeff.config template\n";
+print "using $samtools_exe as samtools executable\n";
 
 sub variation_build_db {
   my $gid = shift or die "must provide genome id";
 
-  # create database directory in $dbpath
+  # create database directory $genome_name in $dbpath
   my $json_text = get_json_genome($gid);
   my $perl_scalar = decode_json($json_text);
   my $genome_name = $perl_scalar->{genome_name};
@@ -62,9 +64,9 @@ sub variation_build_db {
 
   #  snpeff directory
   # snpeff_write_config( $gid, $data_dir );
-  # snpeff_build_reference( $gid, $fasta, $gff, $data_dir );
-
   snpeff_write_config( $genome_name, $data_dir );
+
+  # snpeff_build_reference( $gid, $fasta, $gff, $data_dir );
   snpeff_build_reference( $genome_name, $fasta, $gff, $data_dir );
 
   # write genome.fna
@@ -110,20 +112,22 @@ sub upload_dir_to_shock {
 # $gid is patric genome id
 
 sub snpeff_write_config {
-  my $gid = shift or die "must provide genome id";
+  # my $gid = shift or die "must provide genome id";
+  my $genome_name = shift or die "must provide genome name";
   my $data_dir = shift or die "must provide data dir";
   -d $data_dir or die "data dir is not a valid directory";
 
-  my $json_text = get_json_genome($gid);
-  my $perl_scalar = decode_json($json_text);
-  my $genome_name = $perl_scalar->{genome_name};
-  $genome_name =~ s/\s/_/g;
+  # my $json_text = get_json_genome($gid);
+  # my $perl_scalar = decode_json($json_text);
+  # my $genome_name = $perl_scalar->{genome_name};
+  # $genome_name =~ s/\s/_/g;
 
-  my %data = ( 'data_dir'     => '.', 
-	'lof_ignoreProteinCodingAfter' => "0.95",
-	'lof_ignoreProteinCodingBefore' => "0.05",
-	'genome_entry'   => "$gid.genome : $perl_scalar->{genome_name}",
-	);
+  my %data = ( 'data_dir'     => '.',
+        'lof_ignoreProteinCodingAfter' => "0.95",
+        'lof_ignoreProteinCodingBefore' => "0.05",
+        'genome_entry'   => "$genome_name.genome : $perl_scalar->{genome_name}",
+        );
+
   my $tt = Template->new({ABSOLUTE => 1});
   $tt->process($snpeff_config_tt, \%data, "$data_dir/snpEff.config") or die $tt->error;
 }
