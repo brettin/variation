@@ -3,6 +3,7 @@ package Bio::KBase::Variation::VariationConstants;
 # service level constants
 use constant	aweurl   => '[% aweurl %]';
 use constant	shockurl => '[% shockurl %]';
+use constant	p3dataurl => '[% p3dataurl %]';
 
 # mosaik specific constants
 use constant	annpe     => '[% annpe %]';
@@ -11,8 +12,8 @@ use constant	mthreads  => '[% mthreads %]';
 use constant	mref_db   => '[% mref_db %]';
 
 use Exporter qw(import);
-our @EXPORT_OK = qw(aweurl shockurl annpe annse mthreads mref_db);
-our %EXPORT_TAGS = ( all => [ 'aweurl','shockurl','annpe','annse','mthreads','mref_db',] );
+our @EXPORT_OK = qw(aweurl shockurl p3dataurl annpe annse mthreads mref_db);
+our %EXPORT_TAGS = ( all => [ 'aweurl','shockurl', 'p3dataurl', 'annpe','annse','mthreads','mref_db',] );
 
 
 1;
