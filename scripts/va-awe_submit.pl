@@ -1,7 +1,6 @@
 #!/usr/bin/env perl -w
 
-my $DEBUG = 1;
-my $TEST  = 0;
+my $DEBUG = 0;
 
 use strict;
 use File::Basename;
@@ -24,7 +23,8 @@ use Bio::KBase::AuthToken;
 
 my $help = 0;
 my ($fastq_dir, $build_dir, $file_suffix_1, $file_suffix_2);
-my ($ref_db, $ref_genome, $ref_name, $aweurl, $shockurl, $shocktoken, );
+my ($ref_db, $ref_genome, $ref_name, $aweurl, $shockurl);
+my ($shocktoken, $jid_file, );
 my (@end1, @end2, );
 
 # the suffix on the mate pair files used to construct basename
@@ -37,16 +37,16 @@ $annpe         = annpe;
 $annse         = annse;
 $threads       = mthreads;
 
-print "annpe = $annpe\n";
-print "annse = $annse\n";
-print "threads = $threads\n";
+print "annpe = $annpe\n" if $DEBUG;
+print "annse = $annse\n" if $DEBUG;
+print "threads = $threads\n" if $DEBUG;
 
 # these are the default shock and awe urls
 $aweurl = aweurl;
 $shockurl = shockurl;
 
-print "aweurl = $aweurl\n";
-print "shockurl = $shockurl\n";
+print "aweurl = $aweurl\n" if $DEBUG;
+print "shockurl = $shockurl\n" if $DEBUG;
 
 GetOptions(
         'h'     => \$help,
@@ -57,6 +57,7 @@ GetOptions(
 	'au=s'  => \$aweurl,
 	'su=s'  => \$shockurl,
 	'st=s'  => \$shocktoken,
+	'jf=s'  => \$jid_file,
 
 ) or pod2usage(0);
 
@@ -69,17 +70,16 @@ pod2usage(-exitstatus => 0,
 			( ! $aweurl )    or
 			( ! $ref_db )
 		       );
+# if a auth token isn't passed in, try to get one
+$shocktoken = Bio::KBase::AuthToken->new()->{token} unless $shocktoken;
 
 # any paramater validation needed
 die "fastq_dir not a directory" unless -d $fastq_dir;
 $fastq_dir =~ s/\/+$//;
 my($filename, $directories, $suffix) = fileparse($ref_db, qr/\.[^.]*/);
 
-# if a auth token isn't passed in, try to get one
-$shocktoken = Bio::KBase::AuthToken->new()->{token} unless $shocktoken;
-
 # allow the reference genome data to stored in shock
-print "checking reference db $ref_db if is handle\n";
+print "checking reference db $ref_db if is handle\n" if $DEBUG;
 if ( $suffix =~ /\.handle$/ ) {
   $ref_db = read_handle( $ref_db );
   $ref_name = $filename;
@@ -119,21 +119,19 @@ print Dumper \@task_files if $DEBUG;
 # id_pair is a 2 element array containing the filename and node id
 # task_nodes is a list of id_pairs
 
-my $shock = new SHOCK::Client($shockurl, $shocktoken) unless $TEST;
+my $shock = new SHOCK::Client($shockurl, $shocktoken);
 my @task_nodes;
 
 foreach my $pair (@task_files) {
   my $id_pair;
 
   foreach my $file (@$pair)  {
-    my $node_obj = $shock->upload(file => $file) unless $TEST;
-
-    # This is for testing w/o a network
-    $node_obj->{data}->{id} = rand scalar(time) if $TEST;
+    my $node_obj = $shock->upload(file => $file);
 
     unless ( defined($node_obj->{'data'}) ) {
       print Dumper($node_obj) if $DEBUG;
-      die "no data field found";
+      die "no data field found in node_obj during shock upload\n",
+           Dumper($node_obj);
     }
 
     my $node_id = $node_obj->{'data'}->{'id'};
@@ -282,13 +280,18 @@ my $awe = new AWE::Client($aweurl, $shocktoken);
 print "setting aweurl to $aweurl\n" if $DEBUG;
 $awe->{awe_url} = $aweurl;
 
-exit if $TEST;
-
 my $json_workflow = $json->encode($workflow->getHash());
 my $submission_result = $awe->submit_job('json_data' => $json_workflow);
 my $job_id = $submission_result->{'data'}->{'id'} || die "no job_id found";
 
-print $job_id, "\n";
+if ( $jid_file ) {
+  open JID, ">$jid_file" or die "can not open jid file: $jid_file";
+  print JID $job_id;
+  close JID;
+}
+
+print "\nJOB_ID: ",$job_id, "\n";
+
 if (open F, ">$job_id") {
 	my $pretty_workflow = $json->pretty->encode( $workflow->getHash() );
 	print F $pretty_workflow;
@@ -346,6 +349,7 @@ sub read_handle {
         'su=s'  => \$shockurl,	The url of the shock server including proto.
         'au=s'  => \$aweurl,	The url of the awe server including protocol.
         'st=s'  => \$shocktoken,	Your shock token.
+	'jf=s'  => \$jid_file	The job id and only the job id  will be written into this file.
 
 ==head1 NOTES
 
