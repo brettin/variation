@@ -10,7 +10,7 @@ SERVICE_DIR  = variation
 DIST_DIR     = $(TOP_DIR)/dist
 
 SERVICE_PSGI = $(SERVICE_NAME).psgi
-TPAGE_ARGS = --define kb_runas_user=$(SERVICE_USER) --define kb_top=$(TARGET) --define kb_runtime=$(DEPLOY_RUNTIME) --define kb_service_name=$(SERVICE_NAME) --define kb_service_dir=$(SERVICE_DIR) --define kb_service_port=$(SERVICE_PORT) --define kb_psgi=$(SERVICE_PSGI) --define aweurl=$(AWEURL) --define shockurl=$(SHOCKURL) --define annpe=$(ANNPE) --define annse=$(ANNSE) --define mthreads=$(MTHREADS) --define mref_db=$(MREF_DB)
+TPAGE_ARGS = --define kb_runas_user=$(SERVICE_USER) --define kb_top=$(TARGET) --define kb_runtime=$(DEPLOY_RUNTIME) --define kb_service_name=$(SERVICE_NAME) --define kb_service_dir=$(SERVICE_DIR) --define kb_service_port=$(SERVICE_PORT) --define kb_psgi=$(SERVICE_PSGI) --define aweurl=$(AWEURL) --define shockurl=$(SHOCKURL) --define annpe=$(ANNPE) --define annse=$(ANNSE) --define mthreads=$(MTHREADS) --define mref_db=$(MREF_DB) --define p3dataurl=$(P3DATAURL)
 
 # to wrap scripts and deploy them to $(TARGET)/bin using tools in
 # the dev_container. right now, these vars are defined in
